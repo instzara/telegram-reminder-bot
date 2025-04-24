@@ -4,7 +4,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 
-API_TOKEN = '7681576222:AAHyEhQBqKQzutLFgUO8XFabsBtrloX_4uU'
+API_TOKEN = '7681576222:AAFu9c-sjTLisdAFMWYjHyh4l0R-YZTHjnI'
 bot = telebot.TeleBot(API_TOKEN)
 
 user_data = {}
