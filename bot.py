@@ -11,28 +11,32 @@ user_data = {}
 
 def reminder_job(chat_id, medicine, reminder_time, frequency, day_of_week):
     try:
-        now = datetime.now()
-        days_of_week = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
-        day_index = days_of_week.index(day_of_week)
-        next_day = now + timedelta(days=(day_index - now.weekday()) % 7)
-        reminder_datetime = datetime.strptime(reminder_time, "%H:%M").replace(year=next_day.year, month=next_day.month, day=next_day.day)
+        while True:
+            now = datetime.now()
+            days_of_week = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+            day_index = days_of_week.index(day_of_week)
 
-        if reminder_datetime < now:
-            reminder_datetime += timedelta(weeks=1)
+            # Следующий нужный день
+            days_ahead = (day_index - now.weekday()) % 7
+            next_day = now + timedelta(days=days_ahead)
+            hour, minute = map(int, reminder_time.split(":"))
+            reminder_datetime = next_day.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
-        delay = (reminder_datetime - now).total_seconds()
-        time.sleep(delay)
+            # Если уже прошло — переносим на следующую неделю
+            if reminder_datetime < now:
+                reminder_datetime += timedelta(days=7)
 
-        bot.send_message(chat_id, f"Вы приняли {medicine}?", reply_markup=reminder_keyboard())
+            delay = (reminder_datetime - now).total_seconds()
+            time.sleep(delay)
 
-        if frequency == "Каждый день":
-            next_day = reminder_datetime + timedelta(days=1)
-        elif frequency == "Через день":
-            next_day = reminder_datetime + timedelta(days=2)
-        else:
-            return
+            bot.send_message(chat_id, f"Вы приняли {medicine}?", reply_markup=reminder_keyboard())
 
-        threading.Thread(target=reminder_job, args=(chat_id, medicine, reminder_time, frequency, day_of_week)).start()
+            if frequency == "Единовременно":
+                break
+            elif frequency == "Каждый день":
+                day_of_week = days_of_week[(days_of_week.index(day_of_week) + 1) % 7]
+            elif frequency == "Через день":
+                day_of_week = days_of_week[(days_of_week.index(day_of_week) + 2) % 7]
 
     except Exception as e:
         print(f"Ошибка в reminder_job: {e}")
@@ -68,7 +72,8 @@ def days_keyboard():
 
 def process_day(message):
     day = message.text.strip()
-    if not any(day.startswith(d) for d in ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]):
+    valid_days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    if not any(day.startswith(d) for d in valid_days):
         bot.send_message(message.chat.id, "Пожалуйста, выберите корректный день недели.")
         bot.register_next_step_handler(message, process_day)
         return
